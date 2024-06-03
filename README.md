@@ -29,6 +29,30 @@ x2 = resp.load(r)
 print x2                // prints: {"bar": [null, 4.3], "foo": 42}
 ```
 
+Another example: talking to a Keydb server using unix domain sockets (it uses a patched version of MiniScript).
+
+```c
+import "resp"
+
+connection = uds.connect("/tmp/keydb.sock")
+
+cmd = resp.command("SET k hello")
+
+connection.send cmd
+
+rep = connection.receive
+
+print resp.load(rep)  // prints: OK
+
+cmd = resp.command("GET k")
+
+connection.send cmd
+
+rep = connection.receive
+
+print resp.load(rep).utf8  // prints: hello
+```
+
 
 ## Install
 
@@ -94,7 +118,7 @@ Serialization conversions:
 * Integer numbers are serialized as number type.
 * Real numbers are serialized as double type.
 * Strings without `<CR><LF>` are serialized as simple strings.
-* Strings with `<CR><LF>` are serialized as blob strings.
+* Strings with `<CR><LF>` and `RawData` objects are serialized as blob strings.
 * Lists become array type.
 * Maps become map type.
 * If a map has `_toRESPWrp()` method, it is called and the result is used to produce RESP (see [`_toRESPWrp()` callback](#_torespwrp-callback)).
@@ -496,31 +520,4 @@ print cmd.utf8
 //  GET<CR><LF>
 //  $1<CR><LF>
 //  k<CR><LF>
-```
-
-
-## Examples
-
-Talking to a Keydb server using unix domain sockets (it uses a patched version of MiniScript):
-
-```c
-import "resp"
-
-connection = uds.connect("/tmp/keydb.sock")
-
-cmd = resp.command("SET k hello")
-
-connection.send cmd
-
-rep = connection.receive
-
-print resp.load(rep)  // prints: OK
-
-cmd = resp.command("GET k")
-
-connection.send cmd
-
-rep = connection.receive
-
-print resp.load(rep).utf8  // prints: hello
 ```
