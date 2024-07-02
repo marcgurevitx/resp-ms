@@ -46,6 +46,13 @@ mapGet = function(m, key, defaultValue = null)
 	return @defaultValue
 end function
 
+// mapSetDefault: Returns  `m[key]`, sets `m[key]` to `defaultValue` if doesn't exist (like Python's dict.setDefault).
+mapSetDefault = function(m, key, defaultValue)
+	value = mapGet(m, @key, sentinel)
+	if @value == sentinel then m[@key] = @defaultValue
+	return m[@key]
+end function
+
 // str: Similar to vanilla `str`, but invokes a custom `._str` method if present.
 str = function(x, depth = null, _nested = null)
 	if depth == null or depth == 1/0 or depth < 0 then depth = 3
@@ -82,7 +89,7 @@ str = function(x, depth = null, _nested = null)
 	return intrinsics.str(@x)
 end function
 
-// ???
+// rawDataCmp: Compares two RawData objects, returns `-1` if `r1<r2`, `0` if `r1==r2` and `-1` if `r1>r2`.
 rawDataCmp = function(r1, r2)
 	i = 0
 	while true
@@ -105,6 +112,11 @@ stringToRawData = function(s)
 	return r
 end function
 
+// rawDataToString: Returns a string containing RawData's content.
+rawDataToString = function(r)
+	if r.len == 0 then return ""
+	return r.utf8
+end function
 
 
 
@@ -116,22 +128,20 @@ end function
 // ???
 RawDataCollection = {}
 RawDataCollection._name = "resp:RawDataCollection"
-
-// ???
-RawDataCollection.make = function(rr = null)
-	
+RawDataCollection.init = function(rr = null)
 	if rr == null then rr = []
-	
 	if not rr isa list then rr = [rr]
-	
-	x = new RawDataCollection
-	x.list = []
-	x.offset = 0
-	x.len = 0
+	self.list = []
+	self.offset = 0
+	self.len = 0
 	for r in rr
-		x.push r
+		self.push r
 	end for
-	return x
+	return self
+end function
+
+RawDataCollection.make = function(rr = null)
+	return (new self).init(@rr)
 end function
 
 // ???
@@ -144,11 +154,11 @@ RawDataCollection.totalBytes = function
 end function
 
 // ???
-RawDataCollection.push = function(r, keepLength = false)
-	if r isa string then r = stringToRawData(r)
-	if not (r isa RawData or r isa RawDataCollection) then qa.abort "expected RawData or RawDataCollection, got `" + str(r) + "`"
+RawDataCollection.push = function(r, keepLengthP = false)
+	if @r isa string then r = stringToRawData(r)
+	if not (@r isa RawData or @r isa RawDataCollection) then qa.abort "expected RawData or RawDataCollection, got `" + str(@r) + "`"
 	self.list.push r
-	if not keepLength then self.len += r.len
+	if not keepLengthP then self.len += r.len
 end function
 
 // ???
@@ -274,10 +284,11 @@ RawDataCollection.copy = function
 end function
 
 // ???
-RawDataCollection.indexOf = function(x)
+RawDataCollection.indexOf = function(x, after = 0)
 	if x isa string then x = stringToRawData(x)
-	if x.len > self.len then return null
-	for i in range(0, self.len - x.len, 1)
+	if after == null then after = 0
+	if after + x.len > self.len then return null
+	for i in range(after, self.len - x.len, 1)
 		r = self.toRawData(i, x.len)
 		if rawDataCmp(x, r) == 0 then return i
 	end for
@@ -948,7 +959,7 @@ Loader = {}
 Loader._name = "resp:Loader"
 
 Loader.make = function
-	x = new Loader
+	x = new self
 	x.rdcol = RawDataCollection.make
 	x.state = null
 	x.stack = []

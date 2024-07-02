@@ -2,6 +2,8 @@ import "importUtil"
 
 ensureImport "qa"
 
+if not globals.hasIndex("_EOL") then globals._EOL = char(10)
+
 globals.patchGlobal = function(name, newValue)
 	if not globals.hasIndex("patched") then globals.patched = {}
 	if not patched.hasIndex(name) then patched[name] = []

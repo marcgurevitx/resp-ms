@@ -5,6 +5,9 @@ globals.str = @resp.str
 
 
 
+
+// Tests for utils
+
 testRefIndexOf = function
 	a = {}
 	qa.assertEqual resp.refIndexOf([], a), null
@@ -19,6 +22,16 @@ testMapGet = function
 	qa.assertEqual resp.mapGet({"foo": 420}, "foo", 42), 420
 	qa.assertEqual resp.mapGet({"__isa": {"foo": 420}}, "foo", 42), 420
 	qa.assertEqual resp.mapGet({"__isa": {"__isa": {"foo": 420}}}, "foo", 42), 420
+end function
+
+testMapSetDefault = function
+	m = {}
+	x = resp.mapSetDefault(m, "foo", "bar")
+	qa.assertEqual x, "bar"
+	qa.assertEqual m, {"foo": "bar"}
+	x = resp.mapSetDefault(m, "foo", "baz")
+	qa.assertEqual x, "bar"
+	qa.assertEqual m, {"foo": "bar"}
 end function
 
 testStr = function
@@ -83,6 +96,18 @@ testStringToRawData = function
 	qa.assertEqual resp.stringToRawData("こんにちは世界!").utf8, "こんにちは世界!"
 end function
 
+testRawDataToString = function
+	r = new RawData
+	qa.assertEqual resp.rawDataToString(r), ""
+	
+	r.resize 3
+	r.setUtf8 0, "foo"
+	qa.assertEqual resp.rawDataToString(r), "foo"
+	
+	r.resize 0
+	qa.assertEqual resp.rawDataToString(r), ""
+end function
+
 testRawDataCmp = function
 	stord = @resp.stringToRawData
 	
@@ -98,6 +123,9 @@ testRawDataCmp = function
 end function
 
 
+
+
+// Tests for RawDataCollection
 
 testRawDataCollection = function
 	stord = @resp.stringToRawData
@@ -418,6 +446,13 @@ testRawDataCollectionIndexOf = function
 	
 	s = "fo"
 	qa.assertEqual r.indexOf(stord(s)), 0
+	
+	r.push "baz"
+	s = "a"
+	qa.assertEqual r.indexOf(stord(s)), 4
+	qa.assertEqual r.indexOf(stord(s), 4), 4  // in "bar"
+	qa.assertEqual r.indexOf(stord(s), 5), 7  // in "baz"
+	qa.assertEqual r.indexOf(stord(s), 8), null
 end function
 
 
