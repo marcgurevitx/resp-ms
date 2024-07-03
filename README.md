@@ -29,24 +29,23 @@ x2 = resp.load(r)
 print x2                // prints: {"bar": [null, 4.3], "foo": 42}
 ```
 
-Another example: talking to a Keydb server using unix domain sockets (it uses a patched version of MiniScript).
+Example 2. Talking to a Keydb server using unix domain sockets.
+
+* The MiniScript interpreter for this example is patched to support [unix domain sockets](https://en.wikipedia.org/wiki/Unix_domain_socket) via [uds](https://github.com/marcgurevitx/miniscript-by-jjs/blob/unix-domain-sockets/MiniScript-cpp/README-UDS.md) module.
+* `keydb.conf` contains this line: `unixsocket /tmp/keydb.sock`
 
 ```c
 import "resp"
 
 connection = uds.connect("/tmp/keydb.sock")
 
-cmd = resp.command("SET k hello")
-
-connection.send cmd
+connection.send resp.command("SET k hello")
 
 rep = connection.receive
 
 print resp.load(rep)  // prints: OK
 
-cmd = resp.command("GET k")
-
-connection.send cmd
+connection.send resp.command("GET k")
 
 rep = connection.receive
 
@@ -61,7 +60,7 @@ You only need this file: `lib/resp.ms`.
 
 ## Overview
 
-In very simple cases, the `load()` and `dump()` functions should suffice (see [High level API](#high-level-api)).
+In very simple cases, the `load()` and `dump()` functions (and sometimes `loadMany()`) should suffice (see [High level API](#high-level-api)).
 
 Since there is no one-to-one correspondence between MiniScript and RESP data types, the default conversion between them will lose info. There are three ways to overcome this:
 
@@ -89,7 +88,7 @@ Finally, there is a couple of helper functions (see [Helpers](#helpers)):
 
 #### load()
 
-`load(r, offset = 0, onError = null, wrptov = null) -> value`
+`load(r, onError = null, wrptov = null) -> value`
 
 Deserializes RESP into a MiniScript value. The `r` param can be a string, a RawData object or a list of RawData objects.
 
@@ -103,6 +102,22 @@ Deserialization conversions:
 * Map type is returned as `map`.
 * "Set" type becomes a map of `{elem1: true, elem2: true, elem3: true, ...}`.
 * Any attribute objects are dropped.
+
+---
+
+#### loadMany()
+
+`loadMany(r, onError = null, wrptov = null) -> list of values`
+
+Deserializes RESP into a list of MiniScript values. The `r` param can be a string, a RawData object or a list of RawData objects.
+
+If `r` contains several encoded values one after another, they all get deserialized and returned as a list.
+
+If `r` doesn't contain any whole value, an empty list is returned.
+
+Same default conversions are applied as for `load()`.
+
+---
 
 #### dump()
 
@@ -124,6 +139,8 @@ Serialization conversions:
 * If a map has `_toRESPWrp()` method, it is called and the result is used to produce RESP (see [`_toRESPWrp()` callback](#_torespwrp-callback)).
 
 Some values will not serialize: functions, unknown types (e.g handles) and maps with `__isa` (if they don't have `_toRESPWrp()`).
+
+---
 
 
 ## Wrappers
@@ -162,9 +179,10 @@ Additional wrappers to support streamed strings:
 There are several ways to acquire a wrapper object in code:
 
 * Use a class method `Wrp.fromRESP()` (instead of a `load()` function) to deserialize it from RESP.
+* Use a class method `Wrp.manyFromRESP()` (instead of a `loadMany()` function) to deserialize a list of wrappers from RESP.
 * Use a class method `Wrp.fromValue()` to convert it from a MiniScript value using the default conversion rules.
 * Construct a simple type using a `<class>.fromData()` factory.
-* Construct an aggregate type using a `<class>.make()` factory and then add elements to it with its `push()` method.
+* Construct an aggregate type using a `<class>.make()` factory and then add elements to it with its `pushValue()` or `pushKeyValue()` methods.
 * Use `loader.getWrp()`.
 
 When you've acquired a warapper, you can:
@@ -179,9 +197,23 @@ All wrappers can have an optional RESP "attribute" (an instance of `AttributeWrp
 
 #### Wrp.fromRESP()
 
-`Wrp.fromRESP(r, offset = 0, onError = null) -> wrapper`
+`Wrp.fromRESP(r, onError = null) -> wrapper`
 
 (*class method*) Deserializes RESP from a string, a RawData object or a list of RawData objects into a wrapper object.
+
+---
+
+#### Wrp.manyFromRESP()
+
+`Wrp.manyFromRESP(r, onError = null) -> list of wrappers`
+
+(*class method*) Deserializes RESP from a string, a RawData object or a list of RawData objects into a list of wrapper objects.
+
+If `r` contains several encoded values one after another, they all get deserialized into wrappers and returned as a list.
+
+If `r` doesn't contain any whole value, an empty list is returned.
+
+---
 
 #### \<wrapper>.toRESP()
 
@@ -191,17 +223,23 @@ Serializes a wrapper object into a RawData containing RESP.
 
 (There are also `wrapper.toRESPList()` analogous to `dumpToList()` and `wrapper.toRESPString()` analogous to `dumpToString()`.)
 
+---
+
 #### Wrp.fromValue()
 
 `Wrp.fromValue(v, onError = null, vtowrp = null) -> wrapper`
 
 (*class method*) Creates a wrapper from a MiniScript value using the default conversion.
 
+---
+
 #### \<wrapper>.toValue()
 
 `wrapper.toValue(wrptov = null) -> value`
 
 Creates a MiniScript value from a wrapper using the default conversion.
+
+---
 
 #### \<blob or line class>.fromData()
 
@@ -222,6 +260,8 @@ print w.toRESPString
 //  we're all doomed<CR><LF>
 ```
 
+---
+
 #### \<aggregate class>.make()
 
 `<aggregate class>.make(isStreamed = false, hasHead = false, hasTail = false) -> wrapper`
@@ -230,33 +270,47 @@ print w.toRESPString
 
 This method of `StreamedStringWrp` class doesn't have `isStreamed` parameter: `StreamedStringWrp.make(hasHead = false, hasTail = false)`.
 
-#### \<aggregate wrapper>.push()
+---
 
-`<aggregate wrapper>.push(x)`
+#### \<list-like wrapper>.pushValue()
 
-Adds an element to an aggregate type wrapper.
+`<list-like wrapper>.pushValue(v)`
 
-List-like types (arrays, sets, pushes) expect the argument to be a wrapper object.
+Adds an element to an list-like aggregate type wrapper (`ArrayWrp`, `SetWrp`, `PushWrp` or `StreamedStringWrp`).
 
-Map-like types (maps, atributes) expect the argument to be a list of two objects -- key and value: `[<wrapper>, <wrapper>]`.
+`v` is expected to be a wrapper object.
 
-Steramed strings will only accept `BlobChunkWrp` as an argument.
+In case of streamed strings, `v` can only be a `BlobChunkWrp` object.
 
 ```c
 import "resp"
 
 w = resp.SetWrp.make
-w.push resp.NumberWrp.fromData(100)
-w.push resp.NumberWrp.fromData(200)
+w.pushValue resp.NumberWrp.fromData(100)
+w.pushValue resp.NumberWrp.fromData(200)
 print w.toRESPString
 // prints:
 //  ~2<CR><LF>
 //  :100<CR><LF>
 //  :200<CR><LF>
+```
+
+---
+
+#### \<map-like wrapper>.pushKeyValue()
+
+`<map-like wrapper>.pushKeyValue(k, v)`
+
+Adds a pair to a map-like aggregate type wrapper (`MapWrp` or `AttributeWrp`).
+
+`k` and `v` are both expected to be wrapper objects.
+
+```c
+import "resp"
 
 w = resp.MapWrp.make
-w.push [resp.SimpleStringWrp.fromData("foo"),
-        resp.SimpleStringWrp.fromData("bar")]
+w.pushKeyValue resp.SimpleStringWrp.fromData("foo"),
+               resp.SimpleStringWrp.fromData("bar")
 print w.toRESPString
 // prints:
 //  %1<CR><LF>
@@ -264,11 +318,15 @@ print w.toRESPString
 //  +bar<CR><LF>
 ```
 
+---
+
 #### \<blob or line wrapper>.toRawData()
 
 `<blob or line wrapper>.toRawData -> RawData`
 
 Extracts the content part of a blob or line type wrapper. Returns `RawData`.
+
+---
 
 #### \<line wrapper>.toString()
 
@@ -276,19 +334,27 @@ Extracts the content part of a blob or line type wrapper. Returns `RawData`.
 
 Extracts the content part of a line type wrapper and returns it as `string`.
 
+---
+
 #### \<numeric wrapper>.toNumber()
 
 `<numeric wrapper>.toNumber -> number`
 
 Extracts the content part of a numeric type wrapper and returns it as `number`.
 
+---
+
 #### \<aggregate wrapper>.elements
 
 This property is a list of previously pushed elements.
 
+---
+
 #### \<wrapper>.attribute
 
 This property is either `null` or an assigned `AttributeWrp` object.
+
+---
 
 #### \<wrapper>.setAttribute()
 
@@ -300,8 +366,8 @@ Assigns an attribute property to the wrapper.
 import "resp"
 
 attr = resp.AttributeWrp.make
-attr.push [resp.SimpleStringWrp.fromData("attr1"),
-           resp.DoubleWrp.fromData("-1.23")]
+attr.pushKeyValue resp.SimpleStringWrp.fromData("attr1"),
+                  resp.DoubleWrp.fromData("-1.23")
 
 w = resp.BooleanWrp.fromData(true)
 w.setAttribute attr
@@ -312,6 +378,8 @@ print w.toRESPString
 //  ,-1.23<CR><LF>
 //  #t<CR><LF>
 ```
+
+---
 
 
 ## Writing `onError` callbacks
@@ -335,12 +403,14 @@ The return value of the callback becomes the return value of the caller.
 | S | `"FROM_BAD_CALLBACK"` | result of `_toRESPWrp()` |  | Unable to serialize: `_toRESPWrp()` returned a value that is not a wrapper |
 | S | `"FROM_ARB_INSTANCE"` | value |  | Unable to serialize: the value has `__isa` |
 | S | `"FROM_ARB_TYPE"` | value |  | Unable to serialize: the value has unknown type |
-| D | `"NOT_ENOUGH_DATA"` |  |  | (not an error) The input contains only a fragment of a RESP value |
-| D | `"MORE_DATA"` |  |  | (not an error) The input has more bytes after the end of the RESP value |
 | D | `"UNKNOWN_TYPE"` | type character | type character code | Unable to deserialize: value of unknown type |
 | D | `"BAD_ELEM_TYPE"` | aggregate type character | element type character | Unable to deserialize: wrong type of an element in an aggregate |
 | D | `"EMPTY_LENGTH"` |  |  | Unable to deserialize: Empty string instead of the value length |
 | D | `"BAD_CHUNK"` | chunk length |  | Unable to deserialize: no `<CR><LF>` after a blob |
+| D | `"MAX_DEPTH_EXCEEDED"` |  |  | Unable to deserialize a very deeply nested value |
+| D | `"MAX_ELEMENTS_EXCEEDED"` |  |  | Unable to deserialize a very long aggregate |
+| D | `"MAX_BLOB_LENGTH_EXCEEDED"` |  |  | Unable to deserialize a very long blob value |
+| D | `"MAX_LINE_LENGTH_EXCEEDED"` |  |  | Unable to deserialize a very long line value |
 | D | `"STREAM_STARTED"` | aggregate |  | (not an error) A start marker for a steramed aggregate type is read |
 | D | `"STREAM_ELEMENT"` | aggregate | element | (not an error) An element in the current steramed aggregate is read |
 | D | `"STREAM_STOPPED"` | aggregate |  | (not an error) An end marker for the current steramed aggregate is read |
@@ -352,7 +422,7 @@ onError = function(errCode, arg1, arg2, offset)
 	print "problem = " + errCode
 end function
 
-v = resp.load("@foo", null, @onError)  // prints: problem = UNKNOWN_TYPE
+v = resp.load("@foo", @onError)  // prints: problem = UNKNOWN_TYPE
 
 r = resp.dump(@str, @onError)  // prints: problem = FROM_FUNC
 ```
@@ -360,9 +430,9 @@ r = resp.dump(@str, @onError)  // prints: problem = FROM_FUNC
 
 ## Writing converter callbacks
 
-Functions `load()`, `dump()`, `Wrp.toValue()` and `Wrp.fromValue()` accept optional callback functions that can alter the types conversion process.
+Functions `load()`, `loadMany()`, `dump()`, `Wrp.toValue()` and `Wrp.fromValue()` accept optional callback functions that can alter the types conversion process.
 
-* `load()` and `Wrp.toValue()` accept a `wrptov()` callback.
+* `load()`, `loadMany()` and `Wrp.toValue()` accept a `wrptov()` callback.
 * `dump()` and `Wrp.fromValue()` accept a `vtowrp()` callback.
 
 (The actual function names are not important, but their signature and semantics differ.)
@@ -384,9 +454,11 @@ end function
 
 v = resp.load("*2" + char(13) + char(10) +
               ":42" + char(13) + char(10) +
-              "+foo" + char(13) + char(10), null, null, @wrptov)
+              "+foo" + char(13) + char(10), null, @wrptov)
 print v  // prints: ["( 42 )", "foo"]
 ```
+
+---
 
 #### vtowrp()  // value-to-wrapper
 
@@ -412,6 +484,8 @@ print r.utf8
 //  +bar<CR><LF>
 //  :43<CR><LF>
 ```
+
+---
 
 
 ## `_toRESPWrp()` callback
@@ -441,9 +515,9 @@ print r.utf8
 
 Loader is a class that consumes a stream of RawData objects and produces a stream of wrappers.
 
-To create a loader use a `make()` factory.
+To create a loader use the `make()` factory.
 
-Call `push()` and `getWrp()` to add RawData and read wrappers respectively.
+Call `pushData()` and `getWrp()` to add RawData and read wrappers respectively.
 
 #### Loader.make()
 
@@ -451,15 +525,19 @@ Call `push()` and `getWrp()` to add RawData and read wrappers respectively.
 
 (*class method*)
 
-#### \<loader>.push()
+---
 
-`<loader>.push(r)`
+#### \<loader>.pushData()
+
+`<loader>.pushData(r, onError = null)`
 
 Adds a RawData chunk to the internal RawData collection.
 
+---
+
 #### \<loader>.getWrp()
 
-`<loader>.getWrp(onError = null) -> wrapper`
+`<loader>.getWrp() -> wrapper or null`
 
 Returns a wrapper object, or `null` if the internal RawData collection doesn't contain enough data for a whole value.
 
@@ -468,14 +546,16 @@ import "resp"
 
 l = resp.Loader.make
 
-l.push "+foo"
-l.push char(13) + char(10)
-l.push "+bar" + char(13) + char(10) + "+baz"
+l.pushData "+foo"
+l.pushData char(13) + char(10)
+l.pushData "+bar" + char(13) + char(10) + "+baz"
 
 print l.getWrp.toValue  // prints: foo
 print l.getWrp.toValue  // prints: bar
 print l.getWrp == null  // prints: 1
 ```
+
+---
 
 
 ## Helpers
@@ -486,11 +566,15 @@ print l.getWrp == null  // prints: 1
 
 Replacement for built-in `str()` that calls `._str` if available.
 
+---
+
 #### stringToRawData()
 
 `stringToRawData(s) -> RawData`
 
 Returns a `RawData` object containing data from the string.
+
+---
 
 #### command()
 
@@ -521,3 +605,19 @@ print cmd.utf8
 //  $1<CR><LF>
 //  k<CR><LF>
 ```
+
+---
+
+
+## Changes
+
+#### ver 0.2.0
+
+* new functions: `loadMany()` and `Wrp.manyFromRESP()`
+* `Loader.push()` renamed to `Loader.pushData()`
+* `.push()` of list-like wrappers renamed to `.pushValue()`
+* `.push(v)` of map-like wrappers renamed to `.pushKeyValue(k, v)` (and changed signature)
+* parsing is now done in `Loader.pushData()` (formerly known as `.push()`) and not in `.getWrp()`, so `onError` callback parameter also moved there.
+* deleted error codes `NOT_ENOUGH_DATA` and `MORE_DATA`
+* added limits `Loader.maxDepth`, `.maxElements`, `.maxBlobLength` and `.maxLineLength` and error codes `MAX_DEPTH_EXCEEDED`, `MAX_ELEMENTS_EXCEEDED`, `MAX_BLOB_LENGTH_EXCEEDED` and `MAX_LINE_LENGTH_EXCEEDED`
+* deleted `offset` parameter of `load()` and `Wrp.fromRESP()`

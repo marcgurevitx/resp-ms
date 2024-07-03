@@ -1,6 +1,11 @@
 import "importUtil"
 ensureImport "qa"
 
+version = "0.2.0"
+
+sentinel = []
+sentinel.push function ; end function
+
 rn = char(13) + char(10)
 
 errMsg = {}
@@ -8,15 +13,16 @@ errMsg.EMPTY_LENGTH = "empty length"
 errMsg.UNKNOWN_TYPE = "unknown or unhandled type `{arg1}`, byte value = {arg2}"
 errMsg.BAD_CHUNK = "no CRLF after a chunk of {arg1} bytes"
 errMsg.BAD_ELEM_TYPE = "bad element type `{arg2}` within `{arg1}`-aggregate"
+errMsg.MAX_DEPTH_EXCEEDED = "max depth exceeded"
+errMsg.MAX_ELEMENTS_EXCEEDED = "max number of elements exceeded, got `{arg1}`"
+errMsg.MAX_BLOB_LENGTH_EXCEEDED = "max length of a blob value exceeded, got `{arg1}`"
+errMsg.MAX_LINE_LENGTH_EXCEEDED = "max length of a line value exceeded, got `{arg1}`"
 errMsg.FROM_FUNC = "unable to make a wrapper for a funcRef"
 errMsg.FROM_CYCLES = "cycles in data"
 errMsg.FROM_BAD_CALLBACK = "expected _toRESPWrp to return a wrapper (resp.Wrp), got `{arg1}`"
 errMsg.FROM_ARB_INSTANCE = "unable to make a wrapper for an arbitrary instance"
 errMsg.FROM_ARB_TYPE = "unable to make a wrapper for this value: `{arg1}`"
 _errMsg = errMsg
-
-sentinel = []
-sentinel.push function ; end function
 
 
 
@@ -464,7 +470,7 @@ Wrp.fromValue = function(v, onError = null, vtowrp = null, _seen = null)
 		for elem in v
 			elemWrp = Wrp.fromValue(elem, @onError, @vtowrp, _seen)
 			if elemWrp isa list then return _err(elemWrp[0], elemWrp[1])
-			w.push elemWrp
+			w.pushValue elemWrp
 		end for
 		return w
 	end if
@@ -484,8 +490,8 @@ Wrp.fromValue = function(v, onError = null, vtowrp = null, _seen = null)
 			if kWrp isa list then return _err(kWrp[0], kWrp[1])
 			vWrp = Wrp.fromValue(@kv.value, @onError, @vtowrp, _seen)
 			if vWrp isa list then return _err(vWrp[0], vWrp[1])
-			w.push [kWrp,  // in Cincinnati
-			        vWrp]
+			w.pushKeyValue kWrp,  // in Cincinnati
+			               vWrp
 		end for
 		return w
 	end if
@@ -501,15 +507,40 @@ Wrp.toValue = function(wrptov = null)
 	return self._convert(@wrptov)
 end function
 
-Wrp.fromRESP = function(r, offset = 0, onError = null)
-	if offset == null then offset = 0
-	l = Loader.make
+Wrp.fromRESP = function(r, onError = null)
 	if not r isa list then r = [r]
+	errRet = null
+	sentinel = @outer.sentinel
+	
+	_err = function(errCode, arg1, arg2, offset)
+		if @onError != null then outer.errRet = onError(errCode, arg1, arg2, offset)
+		return sentinel
+	end function
+	
+	l = Loader.make
 	for x in r
-		l.push x
+		ret = l.pushData(x, @_err)
+		if ret == sentinel then return errRet
 	end for
-	l.rdcol.advance offset
-	return l.getWrp(@onError)
+	return l.getWrp
+end function
+
+Wrp.manyFromRESP = function(r, onError = null)
+	if not r isa list then r = [r]
+	errRet = null
+	sentinel = @outer.sentinel
+	
+	_err = function(errCode, arg1, arg2, offset)
+		if @onError != null then outer.errRet = onError(errCode, arg1, arg2, offset)
+		return sentinel
+	end function
+	
+	l = Loader.make
+	for x in r
+		ret = l.pushData(x, @_err)
+		if ret == sentinel then return errRet
+	end for
+	return l.getAllWrps
 end function
 
 Wrp._startRESP = function(rdcol)
@@ -815,7 +846,7 @@ ListLikeValueWrp.toRESPCollection = function(tailLine = ".")
 	return r
 end function
 
-ListLikeValueWrp.push = function(v)
+ListLikeValueWrp.pushValue = function(v)
 	self.assertElement v
 	self.elements.push v
 end function
@@ -872,10 +903,10 @@ StreamedStringWrp.toRESPCollection = function
 	return super.toRESPCollection(";0")
 end function
 
-StreamedStringWrp.push = function(v)
+StreamedStringWrp.pushValue = function(v)
 	if v isa string then v = BlobChunkWrp.fromData(v)
 	if not v isa BlobChunkWrp then qa.abort "expected a streamed string element (resp.BlobChunkWrp), got `" + str(v) + "`"
-	super.push v
+	super.pushValue v
 end function
 
 StreamedStringWrp.toRawData = function(offset = null, nBytes = null)
@@ -915,11 +946,10 @@ MapLikeValueWrp.toRESPCollection = function
 	return r
 end function
 
-MapLikeValueWrp.push = function(v)
-	if not v isa list or not v.len == 2 then qa.abort "expected a field-value pair, got `" + str(v) + "`"
-	self.assertElement v[0]
-	self.assertElement v[1]
-	self.elements.push v
+MapLikeValueWrp.pushKeyValue = function(k, v)
+	self.assertElement k
+	self.assertElement v
+	self.elements.push [k, v]
 end function
 
 MapLikeValueWrp._convert = function(wrptov)
@@ -957,11 +987,16 @@ AttributeWrp.typeCharacter = "|"
 // ???
 Loader = {}
 Loader._name = "resp:Loader"
+Loader.maxDepth = 1/0
+Loader.maxElements = 1/0
+Loader.maxBlobLength = 1/0
+Loader.maxLineLength = 1/0
 
 Loader.make = function
 	x = new self
 	x.rdcol = RawDataCollection.make
-	x.state = null
+	x.wrps = []
+	x.state = "BEGIN"
 	x.stack = []
 	x.attribute = null
 	x.offset = 0
@@ -970,14 +1005,9 @@ Loader.make = function
 end function
 
 // ???
-Loader.push = function(r)
+Loader.pushData = function(r, onError = null)
 	self.rdcol.push r
-end function
-
-// ???
-Loader.getWrp = function(onError = null)
 	loader = self
-	_errMsg = @outer._errMsg
 	if @onError != null then
 		
 		_err = function(errCode, arg1 = null, arg2 = null)
@@ -985,11 +1015,10 @@ Loader.getWrp = function(onError = null)
 		end function
 		
 	else
+		_errMsg = @outer._errMsg
 		
 		_err = function(errCode, arg1 = null, arg2 = null)
-			if errCode == "NOT_ENOUGH_DATA" or
-			   errCode == "MORE_DATA" or
-			   errCode[:6] == "STREAM" then return arg1
+			if errCode[:7] == "STREAM_" then return arg1
 			msg = _errMsg[errCode]
 			msg = msg.replace("{arg1}", str(@arg1))
 			msg = msg.replace("{arg2}", str(@arg2))
@@ -997,11 +1026,10 @@ Loader.getWrp = function(onError = null)
 		end function
 		
 	end if
-	if self.state == null then self.state = "BEGIN"
 	while true
 		if self.state == "BEGIN" then
 			typeCharacter = self._eatCharacter
-			if typeCharacter == null then return _err("NOT_ENOUGH_DATA")
+			if typeCharacter == null then return null
 			if self.stack.len > 0 then
 				a = self.stack[-1]
 				if a.wrp isa StreamedStringWrp then
@@ -1025,8 +1053,8 @@ Loader.getWrp = function(onError = null)
 			continue
 		else if self.state == "LINE" then
 			typeCharacter = self.typeCharacter
-			tail = self._eatLine
-			if tail == null then return _err("NOT_ENOUGH_DATA")
+			tail = self._eatLine(@_err)
+			if tail == null then return null
 			if self.stack.len > 0 then
 				a = self.stack[-1]
 				if typeCharacter == "." or (typeCharacter == ";" and tail.toRawData.utf8 == "0") then
@@ -1079,10 +1107,12 @@ Loader.getWrp = function(onError = null)
 					blobWrp = BlobChunkWrp
 				end if
 				if blobWrp != null then
+					if length > self.maxBlobLength then return _err("MAX_BLOB_LENGTH_EXCEEDED", length)
 					self.stack.push {"class": blobWrp, "length": length}
 					self.state = "BLOB"
 					continue
 				end if
+				if length > self.maxElements then return _err("MAX_ELEMENTS_EXCEEDED", length)
 			end if
 			wrp = null
 			ending = "."
@@ -1105,6 +1135,7 @@ Loader.getWrp = function(onError = null)
 			if wrp != null then
 				if wrp.isStreamed then _err("STREAM_STARTED", wrp)
 				self.stack.push {"wrp": wrp, "length": length, "ending": ending, "acc": [], "attribute": self.attribute}
+				if self.stack.len > self.maxDepth then return _err("MAX_DEPTH_EXCEEDED")
 				self.attribute = null
 				self.state = "ELEMENTS"
 				continue
@@ -1114,7 +1145,7 @@ Loader.getWrp = function(onError = null)
 		else if self.state == "BLOB" then
 			b = self.stack[-1]
 			chunk = self._eatChunk(b.length)
-			if chunk == null then return _err("NOT_ENOUGH_DATA")
+			if chunk == null then return null
 			if chunk == false then
 				return _err("BAD_CHUNK", b.length)
 			end if
@@ -1135,11 +1166,11 @@ Loader.getWrp = function(onError = null)
 				if v isa MapLikeValueWrp then
 					pair.push elem
 					if pair.len == 2 then
-						v.push pair
+						v.pushKeyValue pair[0], pair[1]
 						pair = []
 					end if
 				else
-					v.push elem
+					v.pushValue elem
 				end if
 			end for
 			if a.attribute != null then v.setAttribute a.attribute
@@ -1157,9 +1188,9 @@ Loader.getWrp = function(onError = null)
 				self.attribute = null
 			end if
 			if self.stack.len == 0 then
-				self.state = null
-				if self.rdcol.len > 0 then return _err("MORE_DATA", value)
-				return value
+				self.state = "BEGIN"
+				self.wrps.push value
+				continue
 			end if
 			a = self.stack[-1]
 			a.acc.push value
@@ -1173,6 +1204,18 @@ Loader.getWrp = function(onError = null)
 	end while
 end function
 
+// ???
+Loader.getWrp = function
+	return self.wrps.pull
+end function
+
+// ???
+Loader.getAllWrps = function
+	ret = self.wrps[:]
+	self.wrps = []
+	return ret
+end function
+
 Loader._eatCharacter = function
 	c = self.rdcol.toRawData(0, 1).utf8
 	if not c then return null
@@ -1181,9 +1224,10 @@ Loader._eatCharacter = function
 	return c
 end function
 
-Loader._eatLine = function
+Loader._eatLine = function(_err)
 	rnIndex = self.rdcol.indexOf(rn)
 	if rnIndex == null then return null
+	if rnIndex > self.maxLineLength then return _err("MAX_LINE_LENGTH_EXCEEDED", rnIndex)
 	line = self.rdcol.copy
 	line.len = rnIndex
 	self.rdcol.advance rnIndex + 2
@@ -1210,11 +1254,20 @@ end function
 
 
 // ???
-load = function(r, offset = 0, onError = null, wrptov = null)
-	if offset == null then offset = 0
-	wrp = Wrp.fromRESP(r, offset, @onError)
+load = function(r, onError = null, wrptov = null)
+	wrp = Wrp.fromRESP(r, @onError)
 	if not wrp isa Wrp then return wrp
 	return wrp.toValue(@wrptov)
+end function
+
+// ???
+loadMany = function(r, onError = null, wrptov = null)
+	wrps = Wrp.manyFromRESP(r, @onError)
+	vv = []
+	for wrp in wrps
+		vv.push wrp.toValue(@wrptov)
+	end for
+	return vv
 end function
 
 // ???
@@ -1244,7 +1297,7 @@ command = function(parts)
 	cmd = ArrayWrp.make
 	for p in parts
 		if not p isa Wrp then p = BlobStringWrp.fromData(p)
-		cmd.push p
+		cmd.pushValue p
 	end for
 	return cmd.toRESP
 end function

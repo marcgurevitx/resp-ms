@@ -7,7 +7,7 @@ digraph {
 	L [label="Loader", shape="box", style="filled", fillcolor="lightyellow"]
 	W [label="Wrapper", shape="box", style="filled", fillcolor="khaki"]
 	
-	RR -> L [label="l.push(r)\ll.push(r)\ll.push(r)\l...", color="olive", fontcolor="olive"]
-	L -> W [label="l.getWrp", color="darkolivegreen", fontcolor="darkolivegreen"]
+	RR -> L [label="l.pushData()\ll.pushData()\ll.pushData()\l...", color="olive", fontcolor="olive"]
+	L -> W [label="l.getWrp()", color="darkolivegreen", fontcolor="darkolivegreen"]
 	
 }

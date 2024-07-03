@@ -7,9 +7,9 @@ digraph {
 	W [label="Wrapper", shape="box", style="filled", fillcolor="khaki"]
 	MS [label="MiniScript value"]
 	
-	RR -> W [label=" Wrp.fromRESP(r) ", color="seagreen", fontcolor="seagreen"]
-	W -> RR [label=" w.toRESP ", color="blue", fontcolor="blue"]
-	W -> MS [label=" w.toValue ", color="green", fontcolor="green"]
-	MS -> W [label=" Wrp.fromValue(v) ", color="blueviolet", fontcolor="blueviolet"]
+	RR -> W [label=" Wrp.fromRESP() ", color="seagreen", fontcolor="seagreen"]
+	W -> RR [label=" w.toRESP() ", color="blue", fontcolor="blue"]
+	W -> MS [label=" w.toValue() ", color="green", fontcolor="green"]
+	MS -> W [label=" Wrp.fromValue() ", color="blueviolet", fontcolor="blueviolet"]
 	
 }

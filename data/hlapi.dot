@@ -6,6 +6,6 @@ digraph {
 	RR [label="RESP RawData"]
 	MS [label="MiniScript value"]
 	
-	RR -> MS [label=" load(r) ", color="green", fontcolor="green"]
-	MS -> RR [label=" dump(v) ", color="blue", fontcolor="blue"]
+	RR -> MS [label=" load() ", color="green", fontcolor="green"]
+	MS -> RR [label=" dump() ", color="blue", fontcolor="blue"]
 }

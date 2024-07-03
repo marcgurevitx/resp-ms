@@ -457,6 +457,9 @@ end function
 
 
 
+
+// Tests for *Wrp classes
+
 testBlobStringWrp = function
 	stord = @resp.stringToRawData
 	
@@ -958,12 +961,12 @@ testArrayWrp = function
 	qa.assertEqual w.elements, []
 	qa.assertEqual w.toRESP.utf8, "*0" + char(13) + char(10)
 	
-	w.push resp.SimpleStringWrp.fromData("foo")
+	w.pushValue resp.SimpleStringWrp.fromData("foo")
 	qa.assertEqual w.elements[0].toString, "foo"
 	qa.assertEqual w.toRESP.utf8, "*1"   + char(13) + char(10) +
 	                              "+foo" + char(13) + char(10)
 	
-	w.push resp.BlobStringWrp.fromData("bar")
+	w.pushValue resp.BlobStringWrp.fromData("bar")
 	qa.assertEqual w.elements[0].toString, "foo"
 	qa.assertEqual w.elements[1].toRawData.utf8, "bar"
 	qa.assertEqual w.toRESP.utf8, "*2"   + char(13) + char(10) +
@@ -972,10 +975,10 @@ testArrayWrp = function
 	                              "bar"  + char(13) + char(10)
 	
 	v = resp.ArrayWrp.make
-	v.push resp.NumberWrp.fromData(42)
-	v.push resp.BooleanWrp.fromData(true)
-	w.push v
-	w.push resp.NullWrp.make
+	v.pushValue resp.NumberWrp.fromData(42)
+	v.pushValue resp.BooleanWrp.fromData(true)
+	w.pushValue v
+	w.pushValue resp.NullWrp.make
 	qa.assertEqual w.toRESP.utf8, "*4"   + char(13) + char(10) +
 	                              "+foo" + char(13) + char(10) +
 	                              "$3"   + char(13) + char(10) +
@@ -986,28 +989,28 @@ testArrayWrp = function
 	                              "_"    + char(13) + char(10)
 	
 	w = resp.ArrayWrp.make(true)
-	w.push resp.SimpleStringWrp.fromData("foo")
-	w.push resp.SimpleStringWrp.fromData("bar")
+	w.pushValue resp.SimpleStringWrp.fromData("foo")
+	w.pushValue resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toRESP.utf8, "+foo" + char(13) + char(10) +
 	                              "+bar" + char(13) + char(10)
 	
 	w = resp.ArrayWrp.make(true, true)
-	w.push resp.SimpleStringWrp.fromData("foo")
-	w.push resp.SimpleStringWrp.fromData("bar")
+	w.pushValue resp.SimpleStringWrp.fromData("foo")
+	w.pushValue resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toRESP.utf8, "*?"   + char(13) + char(10) +
 	                              "+foo" + char(13) + char(10) +
 	                              "+bar" + char(13) + char(10)
 	
 	w = resp.ArrayWrp.make(true, false, true)
-	w.push resp.SimpleStringWrp.fromData("foo")
-	w.push resp.SimpleStringWrp.fromData("bar")
+	w.pushValue resp.SimpleStringWrp.fromData("foo")
+	w.pushValue resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toRESP.utf8, "+foo" + char(13) + char(10) +
 	                              "+bar" + char(13) + char(10) +
 	                              "."    + char(13) + char(10)
 	
 	w = resp.ArrayWrp.make(true, true, true)
-	w.push resp.SimpleStringWrp.fromData("foo")
-	w.push resp.SimpleStringWrp.fromData("bar")
+	w.pushValue resp.SimpleStringWrp.fromData("foo")
+	w.pushValue resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toRESP.utf8, "*?"   + char(13) + char(10) +
 	                              "+foo" + char(13) + char(10) +
 	                              "+bar" + char(13) + char(10) +
@@ -1021,8 +1024,8 @@ testMapWrp = function
 	qa.assertEqual w.elements, []
 	qa.assertEqual w.toRESP.utf8, "%0" + char(13) + char(10)
 	
-	w.push [resp.SimpleStringWrp.fromData("foo"),
-	        resp.BlobStringWrp.fromData("bar")]
+	w.pushKeyValue resp.SimpleStringWrp.fromData("foo"),
+	               resp.BlobStringWrp.fromData("bar")
 	qa.assertEqual w.elements[0][0].toString, "foo"
 	qa.assertEqual w.elements[0][1].toRawData.utf8, "bar"
 	qa.assertEqual w.toRESP.utf8, "%1"   + char(13) + char(10) +
@@ -1031,10 +1034,10 @@ testMapWrp = function
 	                              "bar"  + char(13) + char(10)
 	
 	v = resp.MapWrp.make
-	v.push [resp.NumberWrp.fromData(42),
-	        resp.BooleanWrp.fromData(true)]
-	w.push [v,
-	        resp.NullWrp.make]
+	v.pushKeyValue resp.NumberWrp.fromData(42),
+	               resp.BooleanWrp.fromData(true)
+	w.pushKeyValue v,
+	               resp.NullWrp.make
 	qa.assertEqual w.toRESP.utf8, "%2"   + char(13) + char(10) +
 	                              "+foo" + char(13) + char(10) +
 	                              "$3"   + char(13) + char(10) +
@@ -1045,28 +1048,28 @@ testMapWrp = function
 	                              "_"    + char(13) + char(10)
 	
 	w = resp.MapWrp.make(true)
-	w.push [resp.SimpleStringWrp.fromData("foo"),
-	        resp.SimpleStringWrp.fromData("bar")]
+	w.pushKeyValue resp.SimpleStringWrp.fromData("foo"),
+	               resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toRESP.utf8, "+foo" + char(13) + char(10) +
 	                              "+bar" + char(13) + char(10)
 	
 	w = resp.MapWrp.make(true, true)
-	w.push [resp.SimpleStringWrp.fromData("foo"),
-	        resp.SimpleStringWrp.fromData("bar")]
+	w.pushKeyValue resp.SimpleStringWrp.fromData("foo"),
+	               resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toRESP.utf8, "%?"   + char(13) + char(10) +
 	                              "+foo" + char(13) + char(10) +
 	                              "+bar" + char(13) + char(10)
 	
 	w = resp.MapWrp.make(true, false, true)
-	w.push [resp.SimpleStringWrp.fromData("foo"),
-	        resp.SimpleStringWrp.fromData("bar")]
+	w.pushKeyValue resp.SimpleStringWrp.fromData("foo"),
+	               resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toRESP.utf8, "+foo" + char(13) + char(10) +
 	                              "+bar" + char(13) + char(10) +
 	                              "."    + char(13) + char(10)
 	
 	w = resp.MapWrp.make(true, true, true)
-	w.push [resp.SimpleStringWrp.fromData("foo"),
-	        resp.SimpleStringWrp.fromData("bar")]
+	w.pushKeyValue resp.SimpleStringWrp.fromData("foo"),
+	               resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toRESP.utf8, "%?"   + char(13) + char(10) +
 	                              "+foo" + char(13) + char(10) +
 	                              "+bar" + char(13) + char(10) +
@@ -1080,12 +1083,12 @@ testSetWrp = function
 	qa.assertEqual w.elements, []
 	qa.assertEqual w.toRESP.utf8, "~0" + char(13) + char(10)
 	
-	w.push resp.SimpleStringWrp.fromData("foo")
+	w.pushValue resp.SimpleStringWrp.fromData("foo")
 	qa.assertEqual w.elements[0].toString, "foo"
 	qa.assertEqual w.toRESP.utf8, "~1"   + char(13) + char(10) +
 	                              "+foo" + char(13) + char(10)
 	
-	w.push resp.BlobStringWrp.fromData("bar")
+	w.pushValue resp.BlobStringWrp.fromData("bar")
 	qa.assertEqual w.elements[0].toString, "foo"
 	qa.assertEqual w.elements[1].toRawData.utf8, "bar"
 	qa.assertEqual w.toRESP.utf8, "~2"   + char(13) + char(10) +
@@ -1094,10 +1097,10 @@ testSetWrp = function
 	                              "bar"  + char(13) + char(10)
 	
 	v = resp.SetWrp.make
-	v.push resp.NumberWrp.fromData(42)
-	v.push resp.BooleanWrp.fromData(true)
-	w.push v
-	w.push resp.NullWrp.make
+	v.pushValue resp.NumberWrp.fromData(42)
+	v.pushValue resp.BooleanWrp.fromData(true)
+	w.pushValue v
+	w.pushValue resp.NullWrp.make
 	qa.assertEqual w.toRESP.utf8, "~4"   + char(13) + char(10) +
 	                              "+foo" + char(13) + char(10) +
 	                              "$3"   + char(13) + char(10) +
@@ -1108,28 +1111,28 @@ testSetWrp = function
 	                              "_"    + char(13) + char(10)
 	
 	w = resp.SetWrp.make(true)
-	w.push resp.SimpleStringWrp.fromData("foo")
-	w.push resp.SimpleStringWrp.fromData("bar")
+	w.pushValue resp.SimpleStringWrp.fromData("foo")
+	w.pushValue resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toRESP.utf8, "+foo" + char(13) + char(10) +
 	                              "+bar" + char(13) + char(10)
 	
 	w = resp.SetWrp.make(true, true)
-	w.push resp.SimpleStringWrp.fromData("foo")
-	w.push resp.SimpleStringWrp.fromData("bar")
+	w.pushValue resp.SimpleStringWrp.fromData("foo")
+	w.pushValue resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toRESP.utf8, "~?"   + char(13) + char(10) +
 	                              "+foo" + char(13) + char(10) +
 	                              "+bar" + char(13) + char(10)
 	
 	w = resp.SetWrp.make(true, false, true)
-	w.push resp.SimpleStringWrp.fromData("foo")
-	w.push resp.SimpleStringWrp.fromData("bar")
+	w.pushValue resp.SimpleStringWrp.fromData("foo")
+	w.pushValue resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toRESP.utf8, "+foo" + char(13) + char(10) +
 	                              "+bar" + char(13) + char(10) +
 	                              "."    + char(13) + char(10)
 	
 	w = resp.SetWrp.make(true, true, true)
-	w.push resp.SimpleStringWrp.fromData("foo")
-	w.push resp.SimpleStringWrp.fromData("bar")
+	w.pushValue resp.SimpleStringWrp.fromData("foo")
+	w.pushValue resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toRESP.utf8, "~?"   + char(13) + char(10) +
 	                              "+foo" + char(13) + char(10) +
 	                              "+bar" + char(13) + char(10) +
@@ -1143,8 +1146,8 @@ testAttributeWrp = function
 	qa.assertEqual w.elements, []
 	qa.assertEqual w.toRESP.utf8, "|0" + char(13) + char(10)
 	
-	w.push [resp.SimpleStringWrp.fromData("foo"),
-	        resp.BlobStringWrp.fromData("bar")]
+	w.pushKeyValue resp.SimpleStringWrp.fromData("foo"),
+	               resp.BlobStringWrp.fromData("bar")
 	qa.assertEqual w.elements[0][0].toString, "foo"
 	qa.assertEqual w.elements[0][1].toRawData.utf8, "bar"
 	qa.assertEqual w.toRESP.utf8, "|1"   + char(13) + char(10) +
@@ -1153,10 +1156,10 @@ testAttributeWrp = function
 	                              "bar"  + char(13) + char(10)
 	
 	v = resp.MapWrp.make
-	v.push [resp.NumberWrp.fromData(42),
-	        resp.BooleanWrp.fromData(true)]
-	w.push [v,
-	        resp.NullWrp.make]
+	v.pushKeyValue resp.NumberWrp.fromData(42),
+	               resp.BooleanWrp.fromData(true)
+	w.pushKeyValue v,
+	               resp.NullWrp.make
 	qa.assertEqual w.toRESP.utf8, "|2"   + char(13) + char(10) +
 	                              "+foo" + char(13) + char(10) +
 	                              "$3"   + char(13) + char(10) +
@@ -1167,28 +1170,28 @@ testAttributeWrp = function
 	                              "_"    + char(13) + char(10)
 	
 	w = resp.AttributeWrp.make(true)
-	w.push [resp.SimpleStringWrp.fromData("foo"),
-	        resp.SimpleStringWrp.fromData("bar")]
+	w.pushKeyValue resp.SimpleStringWrp.fromData("foo"),
+	               resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toRESP.utf8, "+foo" + char(13) + char(10) +
 	                              "+bar" + char(13) + char(10)
 	
 	w = resp.AttributeWrp.make(true, true)
-	w.push [resp.SimpleStringWrp.fromData("foo"),
-	        resp.SimpleStringWrp.fromData("bar")]
+	w.pushKeyValue resp.SimpleStringWrp.fromData("foo"),
+	               resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toRESP.utf8, "|?"   + char(13) + char(10) +
 	                              "+foo" + char(13) + char(10) +
 	                              "+bar" + char(13) + char(10)
 	
 	w = resp.AttributeWrp.make(true, false, true)
-	w.push [resp.SimpleStringWrp.fromData("foo"),
-	        resp.SimpleStringWrp.fromData("bar")]
+	w.pushKeyValue resp.SimpleStringWrp.fromData("foo"),
+	               resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toRESP.utf8, "+foo" + char(13) + char(10) +
 	                              "+bar" + char(13) + char(10) +
 	                              "."    + char(13) + char(10)
 	
 	w = resp.AttributeWrp.make(true, true, true)
-	w.push [resp.SimpleStringWrp.fromData("foo"),
-	        resp.SimpleStringWrp.fromData("bar")]
+	w.pushKeyValue resp.SimpleStringWrp.fromData("foo"),
+	               resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toRESP.utf8, "|?"   + char(13) + char(10) +
 	                              "+foo" + char(13) + char(10) +
 	                              "+bar" + char(13) + char(10) +
@@ -1199,9 +1202,9 @@ testPushWrp = function
 	stord = @resp.stringToRawData
 	
 	w = resp.PushWrp.make
-	w.push resp.SimpleStringWrp.fromData("message")
-	w.push resp.SimpleStringWrp.fromData("somechannel")
-	w.push resp.SimpleStringWrp.fromData("this is the message")
+	w.pushValue resp.SimpleStringWrp.fromData("message")
+	w.pushValue resp.SimpleStringWrp.fromData("somechannel")
+	w.pushValue resp.SimpleStringWrp.fromData("this is the message")
 	qa.assertEqual w.toRESP.utf8, ">3"                   + char(13) + char(10) +
 	                              "+message"             + char(13) + char(10) +
 	                              "+somechannel"         + char(13) + char(10) +
@@ -1212,8 +1215,8 @@ testStreamedStringWrp = function
 	stord = @resp.stringToRawData
 	
 	w = resp.StreamedStringWrp.make
-	w.push resp.BlobChunkWrp.fromData("foo")
-	w.push resp.BlobChunkWrp.fromData("bar")
+	w.pushValue resp.BlobChunkWrp.fromData("foo")
+	w.pushValue resp.BlobChunkWrp.fromData("bar")
 	qa.assertEqual w.toRawData.utf8, "foobar"
 	qa.assertEqual w.toRESP.utf8, ";3"  + char(13) + char(10) +
 	                              "foo" + char(13) + char(10) +
@@ -1221,8 +1224,8 @@ testStreamedStringWrp = function
 	                              "bar" + char(13) + char(10)
 	
 	w = resp.StreamedStringWrp.make(true)
-	w.push resp.BlobChunkWrp.fromData("foo")
-	w.push resp.BlobChunkWrp.fromData("bar")
+	w.pushValue resp.BlobChunkWrp.fromData("foo")
+	w.pushValue resp.BlobChunkWrp.fromData("bar")
 	qa.assertEqual w.toRawData.utf8, "foobar"
 	qa.assertEqual w.toRESP.utf8, "$?"  + char(13) + char(10) +
 	                              ";3"  + char(13) + char(10) +
@@ -1231,8 +1234,8 @@ testStreamedStringWrp = function
 	                              "bar" + char(13) + char(10)
 	
 	w = resp.StreamedStringWrp.make(false, true)
-	w.push resp.BlobChunkWrp.fromData("foo")
-	w.push resp.BlobChunkWrp.fromData("bar")
+	w.pushValue resp.BlobChunkWrp.fromData("foo")
+	w.pushValue resp.BlobChunkWrp.fromData("bar")
 	qa.assertEqual w.toRawData.utf8, "foobar"
 	qa.assertEqual w.toRESP.utf8, ";3"  + char(13) + char(10) +
 	                              "foo" + char(13) + char(10) +
@@ -1241,8 +1244,8 @@ testStreamedStringWrp = function
 	                              ";0"  + char(13) + char(10)
 	
 	w = resp.StreamedStringWrp.make(true, true)
-	w.push "foo"
-	w.push "bar"
+	w.pushValue "foo"
+	w.pushValue "bar"
 	qa.assertEqual w.toRawData.utf8, "foobar"
 	qa.assertEqual w.toRESP.utf8, "$?"  + char(13) + char(10) +
 	                              ";3"  + char(13) + char(10) +
@@ -1254,8 +1257,8 @@ end function
 
 testValuesWrpSetAttribute = function
 	a = resp.AttributeWrp.make
-	a.push [resp.SimpleStringWrp.fromData("foo"),
-	        resp.SimpleStringWrp.fromData("bar")]
+	a.pushKeyValue resp.SimpleStringWrp.fromData("foo"),
+	               resp.SimpleStringWrp.fromData("bar")
 	
 	w = resp.SimpleStringWrp.fromData("hello")
 	w.setAttribute a
@@ -1275,8 +1278,8 @@ testValuesWrpSetAttribute = function
 	                              "hello" + char(13) + char(10)
 	
 	w = resp.ArrayWrp.make
-	w.push resp.NumberWrp.fromData(100)
-	w.push resp.NumberWrp.fromData(200)
+	w.pushValue resp.NumberWrp.fromData(100)
+	w.pushValue resp.NumberWrp.fromData(200)
 	w.setAttribute a
 	qa.assertEqual w.attribute isa resp.AttributeWrp, true
 	qa.assertEqual w.toRESP.utf8, "|1"   + char(13) + char(10) +
@@ -1425,32 +1428,6 @@ testWrpFromRESP = function
 	qa.assertEqual w.toValue, 3.14
 end function
 
-testWrpFromRESPOffset = function
-	s = "xxxxx" +
-	    "$3"    + char(13) + char(10) +
-	    "foo"   + char(13) + char(10)
-	w = resp.Wrp.fromRESP(s, 5)
-	qa.assertEqual w.toValue.utf8, "foo"
-	
-	
-	o = null
-	
-	_onError = function(errCode, a1, a2, offset)
-		if errCode == "MORE_DATA" then
-			outer.o = offset
-			return a1
-		end if
-	end function
-	s = "$3"    + char(13) + char(10) +
-	    "foo"   + char(13) + char(10) +
-	    "$3"    + char(13) + char(10) +
-	    "bar"   + char(13) + char(10)
-	w = resp.Wrp.fromRESP(s, null, @_onError)
-	qa.assertEqual w.toValue.utf8, "foo"
-	w = resp.Wrp.fromRESP(s, o, @_onError)
-	qa.assertEqual w.toValue.utf8, "bar"
-end function
-
 testWrpFromRESPOnError = function
 	errCode = null
 	a1 = null
@@ -1463,32 +1440,16 @@ testWrpFromRESPOnError = function
 		outer.offset = offset
 	end function
 	
-	s = ""
-	w = resp.Wrp.fromRESP(s, null, @_onError)
-	qa.assertEqual w, null
-	qa.assertEqual errCode, "NOT_ENOUGH_DATA"
-	qa.assertEqual a1, null
-	qa.assertEqual a2, null
-	qa.assertEqual offset, 0
-	
 	s = "@foo"
-	w = resp.Wrp.fromRESP(s, null, @_onError)
+	w = resp.Wrp.fromRESP(s, @_onError)
 	qa.assertEqual w, null
 	qa.assertEqual errCode, "UNKNOWN_TYPE"
 	qa.assertEqual a1, "@"
 	qa.assertEqual a2, 64
 	qa.assertEqual offset, 0
 	
-	s = "+foo"
-	w = resp.Wrp.fromRESP(s, null, @_onError)
-	qa.assertEqual w, null
-	qa.assertEqual errCode, "NOT_ENOUGH_DATA"
-	qa.assertEqual a1, null
-	qa.assertEqual a2, null
-	qa.assertEqual offset, 1
-	
 	s = "$" + char(13) + char(10)
-	w = resp.Wrp.fromRESP(s, null, @_onError)
+	w = resp.Wrp.fromRESP(s, @_onError)
 	qa.assertEqual w, null
 	qa.assertEqual errCode, "EMPTY_LENGTH"
 	qa.assertEqual a1, null
@@ -1496,52 +1457,25 @@ testWrpFromRESPOnError = function
 	qa.assertEqual offset, 1
 	
 	s = "!?" + char(13) + char(10)
-	w = resp.Wrp.fromRESP(s, null, @_onError)
+	w = resp.Wrp.fromRESP(s, @_onError)
 	qa.assertEqual w, null
 	qa.assertEqual errCode, "UNKNOWN_TYPE"
 	qa.assertEqual a1, "!"
 	qa.assertEqual a2, 33
 	qa.assertEqual offset, 0
 	
-	s = "$3" + char(13) + char(10)
-	w = resp.Wrp.fromRESP(s, null, @_onError)
-	qa.assertEqual w, null
-	qa.assertEqual errCode, "NOT_ENOUGH_DATA"
-	qa.assertEqual a1, null
-	qa.assertEqual a2, null
-	qa.assertEqual offset, 4
-	
-	s = "$3" + char(13) + char(10) +
-	    "foo"
-	w = resp.Wrp.fromRESP(s, null, @_onError)
-	qa.assertEqual w, null
-	qa.assertEqual errCode, "NOT_ENOUGH_DATA"
-	qa.assertEqual a1, null
-	qa.assertEqual a2, null
-	qa.assertEqual offset, 4
-	
 	s = "$3"  + char(13) + char(10) +
 	    "foo" + "XX"
-	w = resp.Wrp.fromRESP(s, null, @_onError)
+	w = resp.Wrp.fromRESP(s, @_onError)
 	qa.assertEqual w, null
 	qa.assertEqual errCode, "BAD_CHUNK"
 	qa.assertEqual a1, 3
 	qa.assertEqual a2, null
 	qa.assertEqual offset, 4
 	
-	s = "$3"  + char(13) + char(10) +
-	    "foo" + char(13) + char(10) +
-	    "xxx"
-	w = resp.Wrp.fromRESP(s, null, @_onError)
-	qa.assertEqual w, null
-	qa.assertEqual errCode, "MORE_DATA"
-	qa.assertEqual a1.toValue.utf8, "foo"
-	qa.assertEqual a2, null
-	qa.assertEqual offset, 9
-	
 	s = "$?"  + char(13) + char(10) +
 	    "+"
-	w = resp.Wrp.fromRESP(s, null, @_onError)
+	w = resp.Wrp.fromRESP(s, @_onError)
 	qa.assertEqual w, null
 	qa.assertEqual errCode, "BAD_ELEM_TYPE"
 	qa.assertEqual a1, "$"
@@ -1550,7 +1484,7 @@ testWrpFromRESPOnError = function
 	
 	s = "*?"  + char(13) + char(10) +
 	    ";"
-	w = resp.Wrp.fromRESP(s, null, @_onError)
+	w = resp.Wrp.fromRESP(s, @_onError)
 	qa.assertEqual w, null
 	qa.assertEqual errCode, "BAD_ELEM_TYPE"
 	qa.assertEqual a1, "*"
@@ -1599,46 +1533,46 @@ testWrpToValue = function
 	qa.assertEqual w.toValue, 1234
 	
 	w = resp.ArrayWrp.make
-	w.push resp.SimpleStringWrp.fromData("foo")
-	w.push resp.SimpleStringWrp.fromData("bar")
+	w.pushValue resp.SimpleStringWrp.fromData("foo")
+	w.pushValue resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toValue isa list, true
 	qa.assertEqual w.toValue, ["foo", "bar"]
 	
 	w = resp.MapWrp.make
-	w.push [resp.SimpleStringWrp.fromData("foo"),
-	        resp.SimpleStringWrp.fromData("bar")]
+	w.pushKeyValue resp.SimpleStringWrp.fromData("foo"),
+	               resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toValue isa map, true
 	qa.assertEqual w.toValue, {"foo": "bar"}
 	
 	w = resp.SetWrp.make
-	w.push resp.SimpleStringWrp.fromData("foo")
-	w.push resp.SimpleStringWrp.fromData("bar")
+	w.pushValue resp.SimpleStringWrp.fromData("foo")
+	w.pushValue resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toValue isa map, true
 	qa.assertEqual w.toValue, {"foo": true, "bar": true}
 	
 	w = resp.AttributeWrp.make
-	w.push [resp.SimpleStringWrp.fromData("foo"),
-	        resp.SimpleStringWrp.fromData("bar")]
+	w.pushKeyValue resp.SimpleStringWrp.fromData("foo"),
+	               resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toValue isa map, true
 	qa.assertEqual w.toValue, {"foo": "bar"}
 	
 	w = resp.PushWrp.make
-	w.push resp.SimpleStringWrp.fromData("foo")
-	w.push resp.SimpleStringWrp.fromData("bar")
+	w.pushValue resp.SimpleStringWrp.fromData("foo")
+	w.pushValue resp.SimpleStringWrp.fromData("bar")
 	qa.assertEqual w.toValue isa list, true
 	qa.assertEqual w.toValue, ["foo", "bar"]
 	
 	w = resp.StreamedStringWrp.make
-	w.push resp.BlobChunkWrp.fromData("foo")
-	w.push resp.BlobChunkWrp.fromData("bar")
+	w.pushValue resp.BlobChunkWrp.fromData("foo")
+	w.pushValue resp.BlobChunkWrp.fromData("bar")
 	qa.assertEqual w.toValue isa RawData, true
 	qa.assertEqual w.toValue.utf8, "foobar"
 end function
 
 testWrpToValueWrptov = function
 	w = resp.ArrayWrp.make
-	w.push resp.SimpleStringWrp.fromData("foo")
-	w.push resp.SimpleErrorWrp.fromData("bar")
+	w.pushValue resp.SimpleStringWrp.fromData("foo")
+	w.pushValue resp.SimpleErrorWrp.fromData("bar")
 	
 	_wrptov = function(wrp)
 		if wrp isa resp.SimpleStringWrp then return "/" + wrp.toString + "/"
@@ -1700,25 +1634,28 @@ end function
 
 
 
+
+// Tests for Loader
+
 testLoaderBlobString = function
 	l = resp.Loader.make
-	l.push "$0" + char(13) + char(10) +
-	       ""   + char(13) + char(10)
+	l.pushData "$0" + char(13) + char(10) +
+	           ""   + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.BlobStringWrp, true
 	qa.assertEqual w.toValue.len, 0
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push "$3"  + char(13) + char(10)
-	l.push "foo" + char(13) + char(10)
+	l.pushData "$3"  + char(13) + char(10)
+	l.pushData "foo" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.BlobStringWrp, true
 	qa.assertEqual w.toValue.utf8, "foo"
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push "$-1" + char(13) + char(10)
+	l.pushData "$-1" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.NullWrp, true
 	qa.assertEqual w.typeCharacter, "$"
@@ -1727,20 +1664,20 @@ end function
 
 testLoaderStreamedString = function
 	l = resp.Loader.make
-	l.push "$?" + char(13) + char(10) +
-	       ";0" + char(13) + char(10)
+	l.pushData "$?" + char(13) + char(10) +
+	           ";0" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.StreamedStringWrp, true
 	qa.assertEqual w.toValue.len, 0
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push "$?"  + char(13) + char(10)
-	l.push ";3"  + char(13) + char(10)
-	l.push "foo" + char(13) + char(10)
-	l.push ";3"  + char(13) + char(10)
-	l.push "bar" + char(13) + char(10)
-	l.push ";0"  + char(13) + char(10)
+	l.pushData "$?"  + char(13) + char(10)
+	l.pushData ";3"  + char(13) + char(10)
+	l.pushData "foo" + char(13) + char(10)
+	l.pushData ";3"  + char(13) + char(10)
+	l.pushData "bar" + char(13) + char(10)
+	l.pushData ";0"  + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.StreamedStringWrp, true
 	qa.assertEqual w.toValue.utf8, "foobar"
@@ -1750,19 +1687,19 @@ end function
 testLoaderParts = function
 	l = resp.Loader.make
 	
-	l.push "$"
+	l.pushData "$"
 	w = l.getWrp
 	qa.assertEqual w, null
 	
-	l.push "3" + char(13)
+	l.pushData "3" + char(13)
 	w = l.getWrp
 	qa.assertEqual w, null
 	
-	l.push char(10) + "fo"
+	l.pushData char(10) + "fo"
 	w = l.getWrp
 	qa.assertEqual w, null
 	
-	l.push "o" + char(13) + char(10)
+	l.pushData "o" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.BlobStringWrp, true
 	qa.assertEqual w.toValue.utf8, "foo"
@@ -1770,15 +1707,15 @@ end function
 
 testLoaderSimpleString = function
 	l = resp.Loader.make
-	l.push "+" + char(13) + char(10)
+	l.pushData "+" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.SimpleStringWrp, true
 	qa.assertEqual w.toValue, ""
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push "+foo"
-	l.push char(13) + char(10)
+	l.pushData "+foo"
+	l.pushData char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.SimpleStringWrp, true
 	qa.assertEqual w.toValue, "foo"
@@ -1787,15 +1724,15 @@ end function
 
 testLoaderSimpleError = function
 	l = resp.Loader.make
-	l.push "-" + char(13) + char(10)
+	l.pushData "-" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.SimpleErrorWrp, true
 	qa.assertEqual w.toValue, ""
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push "-foo"
-	l.push char(13) + char(10)
+	l.pushData "-foo"
+	l.pushData char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.SimpleErrorWrp, true
 	qa.assertEqual w.toValue, "foo"
@@ -1804,15 +1741,15 @@ end function
 
 testLoaderNumber = function
 	l = resp.Loader.make
-	l.push ":0" + char(13) + char(10)
+	l.pushData ":0" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.NumberWrp, true
 	qa.assertEqual w.toValue, 0
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push ":123"
-	l.push char(13) + char(10)
+	l.pushData ":123"
+	l.pushData char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.NumberWrp, true
 	qa.assertEqual w.toValue, 123
@@ -1821,21 +1758,21 @@ end function
 
 testLoaderNull = function
 	l = resp.Loader.make
-	l.push "_" + char(13) + char(10)
+	l.pushData "_" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.NullWrp, true
 	qa.assertEqual w.toValue, null
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push "$-1" + char(13) + char(10)
+	l.pushData "$-1" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.NullWrp, true
 	qa.assertEqual w.toValue, null
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push "*-1" + char(13) + char(10)
+	l.pushData "*-1" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.NullWrp, true
 	qa.assertEqual w.toValue, null
@@ -1844,30 +1781,30 @@ end function
 
 testLoaderDouble = function
 	l = resp.Loader.make
-	l.push ",0" + char(13) + char(10)
+	l.pushData ",0" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.DoubleWrp, true
 	qa.assertEqual w.toValue, 0
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push ",12.3"
-	l.push char(13) + char(10)
+	l.pushData ",12.3"
+	l.pushData char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.DoubleWrp, true
 	qa.assertEqual w.toValue, 12.3
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push ",-1.2e+3"
-	l.push char(13) + char(10)
+	l.pushData ",-1.2e+3"
+	l.pushData char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.DoubleWrp, true
 	qa.assertEqual w.toValue, -1200
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push ",nan" + char(13) + char(10)
+	l.pushData ",nan" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.DoubleWrp, true
 	qa.assertEqual w.toValue != w.toValue, true
@@ -1876,15 +1813,15 @@ end function
 
 testLoaderBoolean = function
 	l = resp.Loader.make
-	l.push "#t" + char(13) + char(10)
+	l.pushData "#t" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.BooleanWrp, true
 	qa.assertEqual w.toValue, true
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push "#f"
-	l.push char(13) + char(10)
+	l.pushData "#f"
+	l.pushData char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.BooleanWrp, true
 	qa.assertEqual w.toValue, false
@@ -1893,16 +1830,16 @@ end function
 
 testLoaderBlobError = function
 	l = resp.Loader.make
-	l.push "!0" + char(13) + char(10) +
-	       ""   + char(13) + char(10)
+	l.pushData "!0" + char(13) + char(10) +
+	           ""   + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.BlobErrorWrp, true
 	qa.assertEqual w.toValue.len, 0
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push "!3"  + char(13) + char(10) +
-	       "foo" + char(13) + char(10)
+	l.pushData "!3"  + char(13) + char(10) +
+	           "foo" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.BlobErrorWrp, true
 	qa.assertEqual w.toValue.utf8, "foo"
@@ -1911,16 +1848,16 @@ end function
 
 testLoaderVerbatimString = function
 	l = resp.Loader.make
-	l.push "=4"   + char(13) + char(10) +
-	       "txt:" + char(13) + char(10)
+	l.pushData "=4"   + char(13) + char(10) +
+	           "txt:" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.VerbatimStringWrp, true
 	qa.assertEqual w.toValue.utf8, "txt:"
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push "=7"      + char(13) + char(10) +
-	       "mkd:foo" + char(13) + char(10)
+	l.pushData "=7"      + char(13) + char(10) +
+	           "mkd:foo" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.VerbatimStringWrp, true
 	qa.assertEqual w.toValue.utf8, "mkd:foo"
@@ -1929,15 +1866,15 @@ end function
 
 testLoaderBigNumber = function
 	l = resp.Loader.make
-	l.push "(3492890328409238509324850943850943825024385" + char(13) + char(10)
+	l.pushData "(3492890328409238509324850943850943825024385" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.BigNumberWrp, true
 	qa.assertEqual w.toString, "3492890328409238509324850943850943825024385"
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push "(3492890328409238509324850943850943825024385"
-	l.push char(13) + char(10)
+	l.pushData "(3492890328409238509324850943850943825024385"
+	l.pushData char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.BigNumberWrp, true
 	qa.assertEqual w.toString, "3492890328409238509324850943850943825024385"
@@ -1946,37 +1883,37 @@ end function
 
 testLoaderArray = function
 	l = resp.Loader.make
-	l.push "*0" + char(13) + char(10)
+	l.pushData "*0" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.ArrayWrp, true
 	qa.assertEqual w.toValue, []
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push "*2"   + char(13) + char(10)
-	l.push "+foo" + char(13) + char(10)
-	l.push ":42"  + char(13) + char(10)
+	l.pushData "*2"   + char(13) + char(10)
+	l.pushData "+foo" + char(13) + char(10)
+	l.pushData ":42"  + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.ArrayWrp, true
 	qa.assertEqual w.toValue, ["foo", 42]
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push "*?"   + char(13) + char(10)
-	l.push "+foo" + char(13) + char(10)
-	l.push ":42"  + char(13) + char(10)
-	l.push "."    + char(13) + char(10)
+	l.pushData "*?"   + char(13) + char(10)
+	l.pushData "+foo" + char(13) + char(10)
+	l.pushData ":42"  + char(13) + char(10)
+	l.pushData "."    + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.ArrayWrp, true
 	qa.assertEqual w.toValue, ["foo", 42]
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push "*2"   + char(13) + char(10)
-	l.push "*2"   + char(13) + char(10)
-	l.push "+foo" + char(13) + char(10)
-	l.push ":42"  + char(13) + char(10)
-	l.push "+bar" + char(13) + char(10)
+	l.pushData "*2"   + char(13) + char(10)
+	l.pushData "*2"   + char(13) + char(10)
+	l.pushData "+foo" + char(13) + char(10)
+	l.pushData ":42"  + char(13) + char(10)
+	l.pushData "+bar" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.ArrayWrp, true
 	qa.assertEqual w.toValue, [["foo", 42], "bar"]
@@ -1985,26 +1922,26 @@ end function
 
 testLoaderMap = function
 	l = resp.Loader.make
-	l.push "%0" + char(13) + char(10)
+	l.pushData "%0" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.MapWrp, true
 	qa.assertEqual w.toValue, {}
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push "%1"   + char(13) + char(10)
-	l.push "+foo" + char(13) + char(10)
-	l.push ":42"  + char(13) + char(10)
+	l.pushData "%1"   + char(13) + char(10)
+	l.pushData "+foo" + char(13) + char(10)
+	l.pushData ":42"  + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.MapWrp, true
 	qa.assertEqual w.toValue, {"foo": 42}
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push "%?"   + char(13) + char(10)
-	l.push "+foo" + char(13) + char(10)
-	l.push ":42"  + char(13) + char(10)
-	l.push "."    + char(13) + char(10)
+	l.pushData "%?"   + char(13) + char(10)
+	l.pushData "+foo" + char(13) + char(10)
+	l.pushData ":42"  + char(13) + char(10)
+	l.pushData "."    + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.MapWrp, true
 	qa.assertEqual w.toValue, {"foo": 42}
@@ -2013,26 +1950,26 @@ end function
 
 testLoaderSet = function
 	l = resp.Loader.make
-	l.push "~0" + char(13) + char(10)
+	l.pushData "~0" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.SetWrp, true
 	qa.assertEqual w.toValue, {}
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push "~2"   + char(13) + char(10)
-	l.push "+foo" + char(13) + char(10)
-	l.push ":42"  + char(13) + char(10)
+	l.pushData "~2"   + char(13) + char(10)
+	l.pushData "+foo" + char(13) + char(10)
+	l.pushData ":42"  + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.SetWrp, true
 	qa.assertEqual w.toValue, {"foo": true, 42: true}
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push "~?"   + char(13) + char(10)
-	l.push "+foo" + char(13) + char(10)
-	l.push ":42"  + char(13) + char(10)
-	l.push "."    + char(13) + char(10)
+	l.pushData "~?"   + char(13) + char(10)
+	l.pushData "+foo" + char(13) + char(10)
+	l.pushData ":42"  + char(13) + char(10)
+	l.pushData "."    + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.SetWrp, true
 	qa.assertEqual w.toValue, {"foo": true, 42: true}
@@ -2041,10 +1978,10 @@ end function
 
 testLoaderPush = function
 	l = resp.Loader.make
-	l.push ">3"                   + char(13) + char(10) +
-	       "+message"             + char(13) + char(10) +
-	       "+somechannel"         + char(13) + char(10) +
-	       "+this is the message" + char(13) + char(10)
+	l.pushData ">3"                   + char(13) + char(10) +
+	           "+message"             + char(13) + char(10) +
+	           "+somechannel"         + char(13) + char(10) +
+	           "+this is the message" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.PushWrp, true
 	qa.assertEqual w.toValue, ["message", "somechannel", "this is the message"]
@@ -2053,10 +1990,10 @@ end function
 
 testValuesWithAttributes = function
 	l = resp.Loader.make
-	l.push "|1"   + char(13) + char(10)
-	l.push "+foo" + char(13) + char(10)
-	l.push ":42"  + char(13) + char(10)
-	l.push ",3.14" + char(13) + char(10)
+	l.pushData "|1"   + char(13) + char(10)
+	l.pushData "+foo" + char(13) + char(10)
+	l.pushData ":42"  + char(13) + char(10)
+	l.pushData ",3.14" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.DoubleWrp, true
 	qa.assertEqual w.toValue, 3.14
@@ -2065,15 +2002,15 @@ testValuesWithAttributes = function
 	qa.assertEqual l.getWrp, null
 	
 	l = resp.Loader.make
-	l.push "|1"   + char(13) + char(10)
-	l.push "+foo" + char(13) + char(10)
-	l.push ":42"  + char(13) + char(10)
-	l.push "*2"   + char(13) + char(10)
-	l.push ":100" + char(13) + char(10)
-	l.push "|1"   + char(13) + char(10)
-	l.push "+bar" + char(13) + char(10)
-	l.push ":43"  + char(13) + char(10)
-	l.push ":200" + char(13) + char(10)
+	l.pushData "|1"   + char(13) + char(10)
+	l.pushData "+foo" + char(13) + char(10)
+	l.pushData ":42"  + char(13) + char(10)
+	l.pushData "*2"   + char(13) + char(10)
+	l.pushData ":100" + char(13) + char(10)
+	l.pushData "|1"   + char(13) + char(10)
+	l.pushData "+bar" + char(13) + char(10)
+	l.pushData ":43"  + char(13) + char(10)
+	l.pushData ":200" + char(13) + char(10)
 	w = l.getWrp
 	qa.assertEqual w isa resp.ArrayWrp, true
 	qa.assertEqual w.toValue, [100, 200]
@@ -2092,28 +2029,22 @@ testLoaderStreamedEvents = function
 	end function
 	
 	l = resp.Loader.make
-	l.push "$?" + char(13) + char(10)
-	w = l.getWrp(@_onError)
-	qa.assertEqual w, null
+	l.pushData "$?" + char(13) + char(10), @_onError
 	qa.assertEqual errArgs[0], "STREAM_STARTED"
 	qa.assertEqual errArgs[1].isStreamed, true
 	qa.assertEqual errArgs[2], null
 	qa.assertEqual errArgs[3], 4
 	errArgs = null
 	
-	l.push ";3" + char(13) + char(10) +
-	       "foo" + char(13) + char(10)
-	w = l.getWrp(@_onError)
-	qa.assertEqual w, null
+	l.pushData ";3" + char(13) + char(10) +
+	           "foo" + char(13) + char(10), @_onError
 	qa.assertEqual errArgs[0], "STREAM_ELEMENT"
 	qa.assertEqual errArgs[1].isStreamed, true
 	qa.assertEqual errArgs[2].toRawData.utf8, "foo"
 	qa.assertEqual errArgs[3], 13
 	errArgs = null
 	
-	l.push ";0" + char(13) + char(10)
-	w = l.getWrp(@_onError)
-	qa.assertEqual w.toValue.utf8, "foo"
+	l.pushData ";0" + char(13) + char(10), @_onError
 	qa.assertEqual errArgs[0], "STREAM_STOPPED"
 	qa.assertEqual errArgs[1].isStreamed, true
 	qa.assertEqual errArgs[2], null
@@ -2121,7 +2052,122 @@ testLoaderStreamedEvents = function
 	errArgs = null
 end function
 
+testLoaderMaxDepth = function
+	s = "*1" + char(13) + char(10) +
+	    "*1" + char(13) + char(10) +
+	    "*1" + char(13) + char(10) +
+	    "*1" + char(13) + char(10) +
+	    "*1" + char(13) + char(10) +
+	    "_" + char(13) + char(10)
+	
+	out = {}
+	_onError = function(errCode, a1, a2, offset)
+		out.errCode = errCode
+		out.a1 = a1
+		out.a2 = a2
+		out.offset = offset
+	end function
+	
+	l = resp.Loader.make
+	l.pushData s, @_onError
+	wrp = l.getWrp
+	qa.assertEqual wrp.toValue, [[[[[null]]]]]
+	
+	l = resp.Loader.make
+	l.maxDepth = 3
+	l.pushData s, @_onError
+	qa.assertEqual out.errCode, "MAX_DEPTH_EXCEEDED"
+	qa.assertEqual out.a1, null
+	qa.assertEqual out.a2, null
+	qa.assertEqual out.offset, 16
+end function
 
+testLoaderMaxElements = function
+	
+	s = "*5" + char(13) + char(10) +
+	    "_" + char(13) + char(10) +
+	    "_" + char(13) + char(10) +
+	    "_" + char(13) + char(10) +
+	    "_" + char(13) + char(10) +
+	    "_" + char(13) + char(10)
+	
+	out = {}
+	_onError = function(errCode, a1, a2, offset)
+		out.errCode = errCode
+		out.a1 = a1
+		out.a2 = a2
+		out.offset = offset
+	end function
+	
+	l = resp.Loader.make
+	l.pushData s, @_onError
+	wrp = l.getWrp
+	qa.assertEqual wrp.toValue, [null] * 5
+	
+	l = resp.Loader.make
+	l.maxElements = 3
+	l.pushData s, @_onError
+	qa.assertEqual out.errCode, "MAX_ELEMENTS_EXCEEDED"
+	qa.assertEqual out.a1, 5
+	qa.assertEqual out.a2, null
+	qa.assertEqual out.offset, 4
+end function
+
+testLoaderMaxBlobLength = function
+	s = "$5" + char(13) + char(10) +
+	    "hello" + char(13) + char(10)
+	
+	out = {}
+	_onError = function(errCode, a1, a2, offset)
+		out.errCode = errCode
+		out.a1 = a1
+		out.a2 = a2
+		out.offset = offset
+	end function
+	
+	l = resp.Loader.make
+	l.pushData s, @_onError
+	wrp = l.getWrp
+	qa.assertEqual wrp.toValue.utf8, "hello"
+	
+	l = resp.Loader.make
+	l.maxBlobLength = 3
+	l.pushData s, @_onError
+	qa.assertEqual out.errCode, "MAX_BLOB_LENGTH_EXCEEDED"
+	qa.assertEqual out.a1, 5
+	qa.assertEqual out.a2, null
+	qa.assertEqual out.offset, 4
+end function
+
+testLoaderMaxLineLength = function
+	s = "+hello" + char(13) + char(10)
+	
+	out = {}
+	_onError = function(errCode, a1, a2, offset)
+		out.errCode = errCode
+		out.a1 = a1
+		out.a2 = a2
+		out.offset = offset
+	end function
+	
+	l = resp.Loader.make
+	l.pushData s, @_onError
+	wrp = l.getWrp
+	qa.assertEqual wrp.toValue, "hello"
+	
+	l = resp.Loader.make
+	l.maxLineLength = 3
+	l.pushData s, @_onError
+	qa.assertEqual out.errCode, "MAX_LINE_LENGTH_EXCEEDED"
+	qa.assertEqual out.a1, 5
+	qa.assertEqual out.a2, null
+	qa.assertEqual out.offset, 1
+end function
+
+
+
+
+// Tests for high-level API
 
 testLoad = function
 	s = "$3"  + char(13) + char(10) +
@@ -2150,36 +2196,6 @@ testLoad = function
 	qa.assertEqual v, 4.2
 end function
 
-testLoadOffset = function
-	s = "xxxxx" +
-	    "$3"  + char(13) + char(10) +
-	    "foo" + char(13) + char(10)
-	v = resp.load(s, 5)
-	qa.assertEqual v isa RawData, true
-	qa.assertEqual v.utf8, "foo"
-end function
-
-testLoadOnError = function
-	o = null
-	
-	_onError = function(errCode, a1, a2, offset)
-		if errCode == "MORE_DATA" then
-			outer.o = offset
-			return a1
-		end if
-	end function
-	
-	s = "$3"   + char(13) + char(10) +
-	    "foo"  + char(13) + char(10) +
-	    "+bar" + char(13) + char(10)
-	v = resp.load(s, o, @_onError)
-	qa.assertEqual v isa RawData, true
-	qa.assertEqual v.utf8, "foo"
-	v = resp.load(s, o, @_onError)
-	qa.assertEqual v isa string, true
-	qa.assertEqual v, "bar"
-end function
-
 testLoadWrptov = function
 	
 	_wrptov = function(wrp)
@@ -2188,9 +2204,22 @@ testLoadWrptov = function
 	
 	s = "$3"  + char(13) + char(10) +
 	    "foo" + char(13) + char(10)
-	v = resp.load(s, null, null, @_wrptov)
+	v = resp.load(s, null, @_wrptov)
 	qa.assertEqual v isa string, true
 	qa.assertEqual v, "/foo/"
+end function
+
+testLoadMany = function
+	s = "$3"  + char(13) + char(10) +
+	    "foo" + char(13) + char(10) +
+		"$3"  + char(13) + char(10) +
+	    "bar" + char(13) + char(10)
+	
+	vv = resp.loadMany(s)
+	
+	qa.assertEqual vv.len, 2
+	qa.assertEqual vv[0].utf8, "foo"
+	qa.assertEqual vv[1].utf8, "bar"
 end function
 
 testDump = function
@@ -2235,4 +2264,22 @@ testDumpVtowrp = function
 	                       "=7"      + char(13) + char(10) +
 	                       "txt:foo" + char(13) + char(10) +
 	                       ":42"     + char(13) + char(10)
+end function
+
+testCommand = function
+	cmd = resp.command("foo bar")
+	qa.assertEqual cmd.utf8, "*2"  + char(13) + char(10) +
+	                         "$3"  + char(13) + char(10) +
+	                         "foo" + char(13) + char(10) +
+	                         "$3"  + char(13) + char(10) +
+	                         "bar" + char(13) + char(10)
+	
+	cmd = resp.command(["foo", "bar", "baz"])
+	qa.assertEqual cmd.utf8, "*3"  + char(13) + char(10) +
+	                         "$3"  + char(13) + char(10) +
+	                         "foo" + char(13) + char(10) +
+	                         "$3"  + char(13) + char(10) +
+	                         "bar" + char(13) + char(10) +
+	                         "$3"  + char(13) + char(10) +
+	                         "baz" + char(13) + char(10)
 end function
