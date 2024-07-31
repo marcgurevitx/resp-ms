@@ -92,7 +92,7 @@ end function
 
 testStringToRawData = function
 	qa.assertEqual resp.stringToRawData("hello world!").utf8, "hello world!"
-	qa.assertEqual resp.stringToRawData("Привіт Світ!").utf8, "Привіт Світ!"
+	qa.assertEqual resp.stringToRawData("привіт світе!").utf8, "привіт світе!"
 	qa.assertEqual resp.stringToRawData("こんにちは世界!").utf8, "こんにちは世界!"
 end function
 
